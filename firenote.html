@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Desktop Notepad application powered by FireFly">
+  <title>Desktop Notepad</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    .window {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      background: var(--background-color, white);
+      color: var(--text-color, black);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #0078d4;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      transition: transform 0.3s ease;
+      position: relative;
+    }
+
+    .header.slide-out {
+      transform: translateX(100%);
+    }
+
+    .sub-header {
+      background: #0056a0;
+      color: white;
+      padding: 5px;
+      display: flex;
+      justify-content: flex-start;
+      gap: 15px;
+      font-size: 16px;
+    }
+
+    .sub-header .dropdown {
+      position: relative;
+    }
+
+    .sub-header .dropdown button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .sub-header .dropdown-content {
+      display: none;
+      position: absolute;
+      background: white;
+      color: black;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      top: 100%;
+      left: 0;
+      min-width: 100px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+    }
+
+    .sub-header .dropdown-content a {
+      display: block;
+      padding: 8px;
+      text-decoration: none;
+      color: black;
+    }
+
+    .sub-header .dropdown-content a:hover {
+      background: #f0f0f0;
+    }
+
+    .sub-header .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .tab-container {
+      display: flex;
+      align-items: center;
+      margin: 10px;
+      gap: 10px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      background: #0078d4;
+      color: white;
+      padding: 10px;
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #0056a0;
+    }
+
+    .tab .tab-content {
+      padding-right: 30px; /* Space for the close button */
+    }
+
+    .tab .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      position: absolute;
+      top: 50%;
+      right: 5px;
+      transform: translateY(-50%);
+    }
+
+    .tab .close-btn:hover {
+      color: #ff0000;
+    }
+
+    .content {
+      flex-grow: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .textarea-container {
+      display: none;
+      width: 98.5%;
+      height: calc(100% - 40px);
+    }
+
+    .textarea-container.active {
+      display: block;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 16px;
+      resize: none;
+      background: var(--background-color, white);
+      color: var(--text-color, black);
+    }
+
+    .footer {
+      background: #0056a0;
+      color: white;
+      padding: 10px;
+      text-align: left;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer .powered-by {
+      font-size: 14px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      z-index: 1000;
+    }
+    
+    .modal .modal-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .modal .modal-body {
+      margin-bottom: 10px;
+    }
+    
+    .modal .modal-body input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .modal .modal-footer {
+      text-align: right;
+    }
+    
+    .modal .modal-footer button {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      background-color: #0078d4;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 5px;
+    }
+    
+    .modal .modal-footer button:hover {
+      background-color: #0056b3;
+    }
+
+    .dark-mode {
+      --background-color: #333;
+      --text-color: white;
+    }
+
+
+
+
+
+    /* Dialog Overlay */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* Dialog Box */
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+}
+
+/* Dialog Buttons */
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.dialog-buttons button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 3px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.dialog-buttons button:hover {
+  background-color: #0056b3;
+}
+
+
+
+    /*notification*/
+    .notification {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+    }
+    
+    .notification.show {
+      display: block;
+    }
+
+
+    /* Popup styles */
+    #popup-message {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #333;
+      color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 1000; /* Ensure it appears above other content */
+    }
+
+    #popup-message.show {
+      opacity: 1;
+    }
+
+    
+
+  </style>
+</head>
+<body oncontextmenu="return false;">
+  <div class="window" id="notepad">
+    <div class="header" id="header">Fire Note</div>
+    <div class="sub-header">
+      <div class="dropdown">
+        <button>File</button>
+        <div class="dropdown-content">
+          <a href="#" id="new-tab">New</a>
+          <a href="#" id="open-file" onclick="showNotification('Open, Function is Temporarily off!');">Open</a>
+          <a href="#" id="save-file" onclick="showNotification('Save, Function is Temporarily off!');">Save</a>
+          <a href="#" id="save-file-as">Save As</a>
+          <a href="#" id="exit">Exit</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button>Edit</button>
+        <div class="dropdown-content">
+          <a href="#" id="undo">Undo</a>
+          <a href="#" id="redo">Redo</a>
+          <a href="#" id="cut">Cut</a>
+          <a href="#" id="copy">Copy</a>
+          <a href="#" id="paste">Paste</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button>View</button>
+        <div class="dropdown-content">
+          <a href="#" id="fullscreen">Fullscreen</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button>Settings</button>
+        <div class="dropdown-content">
+          <a href="#" id="dark-mode-toggle">Toggle Dark Mode</a>
+          <a href="#" id="customize-text">Customize Text</a>
+        </div>
+      </div>
+    </div>
+    <div class="tab-container" id="tab-container">
+      <!-- Tabs will be added here dynamically -->
+    </div>
+    <div class="content" id="content">
+      <!-- Textareas will be added here dynamically -->
+    </div>
+    <div class="footer" id="footer">
+      <span class="powered-by">Powered by: FireFly</span>
+      <span class="status">Ln: 1, Col: 1 | Characters: 0</span>
+    </div>
+  </div>
+
+  <!-- Save As Modal -->
+  <div class="modal" id="save-modal">
+    <div class="modal-header">Save As</div>
+    <div class="modal-body">
+      <input type="text" id="file-name" placeholder="Enter file name with extension (e.g., note.txt)">
+    </div>
+    <div class="modal-footer">
+      <button id="save-confirm-btn">Save</button>
+      <button id="save-cancel-btn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Customize Text Modal -->
+  <div class="modal" id="customize-modal">
+    <div class="modal-header">Customize Text</div>
+    <div class="modal-body">
+      <label for="text-color">Text Color:</label>
+      <input type="color" id="text-color">
+      <label for="bg-color">Background Color:</label>
+      <input type="color" id="bg-color">
+      <label for="font-size">Font Size:</label>
+      <input type="number" id="font-size" min="10" max="36">
+    </div>
+    <div class="modal-footer">
+      <button id="customize-confirm-btn">Apply</button>
+      <button id="customize-cancel-btn">Cancel</button>
+    </div>
+  </div>
+
+
+  <!-- Notification -->
+<div class="notification" id="notification"></div>
+
+
+
+<!-- Save As Modal -->
+<div class="modal" id="save-modal">
+  <div class="modal-header">Save As</div>
+  <div class="modal-body">
+    <input type="text" id="save-filename" placeholder="Enter file name">
+  </div>
+  <div class="modal-footer">
+    <button id="cancel-save">Cancel</button>
+    <button id="confirm-save">Save</button>
+  </div>
+</div>
+
+
+<!-- Notification -->
+<div class="notification" id="notification">File saved successfully!</div>
+
+
+
+
+
+
+
+
+
+  <script>
+    let activeTab = null;
+
+    // Retrieve saved settings from localStorage
+    const savedSettings = JSON.parse(localStorage.getItem('notepadSettings')) || {
+      darkMode: false,
+      textColor: '#000000',
+      backgroundColor: '#ffffff',
+      fontSize: 16,
+    };
+
+    document.documentElement.style.setProperty('--background-color', savedSettings.backgroundColor);
+    document.documentElement.style.setProperty('--text-color', savedSettings.textColor);
+    document.documentElement.style.setProperty('--font-size', savedSettings.fontSize + 'px');
+
+    if (savedSettings.darkMode) {
+      document.body.classList.add('dark-mode');
+    }
+
+    const tabContainer = document.getElementById('tab-container');
+    const contentContainer = document.getElementById('content');
+    const footer = document.getElementById('footer');
+
+    document.getElementById('new-tab').addEventListener('click', () => {
+      const tab = document.createElement('div');
+      tab.classList.add('tab');
+      const newTabName = 'Tab ' + (tabContainer.children.length + 1);
+      tab.innerHTML = `
+        <span class="tab-content">${newTabName}</span>
+        <button class="close-btn">&times;</button>
+      `;
+
+      const textareaContainer = document.createElement('div');
+      textareaContainer.classList.add('textarea-container');
+
+      const textarea = document.createElement('textarea');
+      textarea.style.color = savedSettings.textColor;
+      textarea.style.backgroundColor = savedSettings.backgroundColor;
+      textarea.style.fontSize = savedSettings.fontSize + 'px';
+      textarea.addEventListener('input', updateFooter);
+      textarea.addEventListener('click', updateFooter);
+      textarea.addEventListener('keyup', updateFooter);
+      textareaContainer.appendChild(textarea);
+
+      tabContainer.appendChild(tab);
+      contentContainer.appendChild(textareaContainer);
+
+      tab.addEventListener('click', () => {
+        setActiveTab(tab);
+      });
+
+      tab.querySelector('.close-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        close("Are you sure?, You will lost your whole data!")
+        closeTab(tab);
+      });
+
+      setActiveTab(tab);
+    });
+
+    function setActiveTab(tab) {
+      if (activeTab) {
+        activeTab.classList.remove('active');
+        document.querySelector('.textarea-container.active').classList.remove('active');
+      }
+      activeTab = tab;
+      tab.classList.add('active');
+      const index = Array.from(tabContainer.children).indexOf(tab);
+      contentContainer.children[index].classList.add('active');
+      updateFooter();
+    }
+
+    function closeTab(tab) {
+      const index = Array.from(tabContainer.children).indexOf(tab);
+      
+      // Ensure index is valid
+      if (index === -1) return;
+    
+      // Check if there's unsaved data and show confirmation dialog
+      const textarea = contentContainer.children[index]?.querySelector('textarea');
+      
+      if (textarea && textarea.value.trim() !== '') {
+        showConfirmationDialog(
+          'Are you sure to close this tab? You will lost your whole data.',
+          () => {
+            // User confirmed, proceed with closing the tab
+            tabContainer.removeChild(tab);
+            contentContainer.removeChild(contentContainer.children[index]);
+    
+            if (tab.classList.contains('active')) {
+              if (tabContainer.children.length > 0) {
+                // Set the first tab as active if available
+                setActiveTab(tabContainer.children[0]);
+              } else {
+                // No more tabs, clear active tab
+                activeTab = null;
+                updateFooter();
+              }
+            }
+          }
+        );
+      } else {
+        // No unsaved data, close tab directly
+        tabContainer.removeChild(tab);
+        contentContainer.removeChild(contentContainer.children[index]);
+    
+        if (tab.classList.contains('active')) {
+          if (tabContainer.children.length > 0) {
+            // Set the first tab as active if available
+            setActiveTab(tabContainer.children[0]);
+          } else {
+            // No more tabs, clear active tab
+            activeTab = null;
+            updateFooter();
+          }
+        }
+      }
+    }
+    
+
+    function updateFooter() {
+      const statusElement = footer.querySelector('.status');
+      if (!activeTab) {
+        statusElement.textContent = 'Ln: 0, Col: 0 | Characters: 0';
+        return;
+      }
+      const textarea = document.querySelector('.textarea-container.active textarea');
+      const lines = textarea.value.split('\n');
+      const lineCount = lines.length;
+      const charCount = textarea.value.length;
+      const cursorPos = textarea.selectionStart;
+      const rowIndex = textarea.value.substr(0, cursorPos).split('\n').length;
+      const colIndex = cursorPos - textarea.value.substr(0, cursorPos).lastIndexOf('\n');
+      statusElement.textContent = `Ln: ${rowIndex}, Col: ${colIndex} | Characters: ${charCount}`;
+    }
+
+    // Show Save As modal
+    document.getElementById('save-file-as').addEventListener('click', () => {
+      document.getElementById('save-modal').style.display = 'block';
+    });
+
+    // Handle Save As modal buttons
+    document.getElementById('save-confirm-btn').addEventListener('click', () => {
+      const fileName = document.getElementById('file-name').value;
+      const textarea = document.querySelector('.textarea-container.active textarea');
+      if (fileName && textarea) {
+        saveTextAsFile(fileName, textarea.value);
+      }
+      document.getElementById('save-modal').style.display = 'none';
+    });
+
+    document.getElementById('save-cancel-btn').addEventListener('click', () => {
+      document.getElementById('save-modal').style.display = 'none';
+    });
+
+    // Save text as file function
+    function saveTextAsFile(fileName, text) {
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    // Toggle Dark Mode
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      savedSettings.darkMode = document.body.classList.contains('dark-mode');
+      saveSettings();
+    });
+
+    // Show Customize Text Modal
+    document.getElementById('customize-text').addEventListener('click', () => {
+      document.getElementById('text-color').value = savedSettings.textColor;
+      document.getElementById('bg-color').value = savedSettings.backgroundColor;
+      document.getElementById('font-size').value = savedSettings.fontSize;
+      document.getElementById('customize-modal').style.display = 'block';
+    });
+
+    // Handle Customize Text Modal buttons
+    document.getElementById('customize-confirm-btn').addEventListener('click', () => {
+      const textColor = document.getElementById('text-color').value;
+      const bgColor = document.getElementById('bg-color').value;
+      const fontSize = document.getElementById('font-size').value;
+      applyTextSettings(textColor, bgColor, fontSize);
+      savedSettings.textColor = textColor;
+      savedSettings.backgroundColor = bgColor;
+      savedSettings.fontSize = fontSize;
+      saveSettings();
+      document.getElementById('customize-modal').style.display = 'none';
+    });
+
+    document.getElementById('customize-cancel-btn').addEventListener('click', () => {
+      document.getElementById('customize-modal').style.display = 'none';
+    });
+
+    function applyTextSettings(textColor, bgColor, fontSize) {
+      document.documentElement.style.setProperty('--text-color', textColor);
+      document.documentElement.style.setProperty('--background-color', bgColor);
+      document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach(textarea => {
+        textarea.style.color = textColor;
+        textarea.style.backgroundColor = bgColor;
+        textarea.style.fontSize = fontSize + 'px';
+      });
+    }
+
+    function saveSettings() {
+      localStorage.setItem('notepadSettings', JSON.stringify(savedSettings));
+    }
+
+
+
+
+
+
+    // Function to show notifications
+function showNotification(message) {
+  const notificationElement = document.getElementById('notification');
+  notificationElement.textContent = message;
+  notificationElement.classList.add('show');
+  setTimeout(() => {
+    notificationElement.classList.remove('show');
+  }, 3000);
+}
+
+// Add event listeners for copy and paste events
+document.addEventListener('DOMContentLoaded', () => {
+  const textareas = document.querySelectorAll('textarea');
+  
+  textareas.forEach(textarea => {
+    textarea.addEventListener('copy', () => showNotification('Text copied!'));
+    textarea.addEventListener('paste', () => showNotification('Text pasted!'));
+  });
+
+  // Add event listener for keyboard shortcuts
+  document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.key === 'c') {
+      showNotification('Text copied!');
+    } else if (event.ctrlKey && event.key === 'v') {
+      showNotification('Text pasted!');
+    }
+  });
+
+  // Add functionality for dropdown buttons
+  document.getElementById('copy').addEventListener('click', () => {
+    const activeTextarea = document.querySelector('.textarea-container.active textarea');
+    if (activeTextarea) {
+      activeTextarea.select();
+      document.execCommand('copy');
+      showNotification('Text copied!');
+    } else {
+      showNotification('No text area is active!');
+    }
+  });
+
+  document.getElementById('paste').addEventListener('click', () => {
+    const activeTextarea = document.querySelector('.textarea-container.active textarea');
+    if (activeTextarea) {
+      activeTextarea.focus();
+      document.execCommand('paste');
+      showNotification('Text pasted!');
+    } 
+    else if (event.ctrlKey && event.key === 'v') {
+      showNotification('Text pasted!');
+      activeTextarea.select();
+      document.execCommand('paste');
+      showNotification('Text pasted!');}
+      else {
+        showNotification('No text area is active!');
+    }
+  });
+});
+
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  const tabContainer = document.getElementById('tab-container');
+  const contentContainer = document.getElementById('content');
+  const saveFileButton = document.getElementById('save-file');
+  const saveFileAsButton = document.getElementById('save-file-as');
+  const saveModal = document.getElementById('save-modal');
+  const saveFilenameInput = document.getElementById('save-filename');
+  const cancelSaveButton = document.getElementById('cancel-save');
+  const confirmSaveButton = document.getElementById('confirm-save');
+  const notification = document.getElementById('notification');
+
+  let currentTabId = null;
+  let tabs = [];
+
+  function showNotification(message) {
+    notification.textContent = message;
+    notification.classList.add('show');
+    setTimeout(() => {
+      notification.classList.remove('show');
+    }, 2000);
+  }
+
+  function saveFile(tabId, filename) {
+    const tab = tabs.find(tab => tab.id === tabId);
+    if (tab) {
+      const content = tab.contentElement.querySelector('textarea').value;
+      localStorage.setItem(filename, content);
+      tab.filename = filename;
+      tab.element.querySelector('.tab-content').textContent = filename;
+      document.title = filename;
+      showNotification('File saved successfully!');
+    }
+  }
+
+  function promptForFilename(callback) {
+    saveModal.style.display = 'block';
+    saveFilenameInput.value = '';
+
+    function handleConfirm() {
+      const filename = saveFilenameInput.value.trim();
+      if (filename) {
+        callback(filename);
+        closeModal();
+      } else {
+        alert('Please enter a valid file name.');
+      }
+    }
+
+    function closeModal() {
+      saveModal.style.display = 'none';
+      confirmSaveButton.removeEventListener('click', handleConfirm);
+      cancelSaveButton.removeEventListener('click', closeModal);
+    }
+
+    confirmSaveButton.addEventListener('click', handleConfirm);
+    cancelSaveButton.addEventListener('click', closeModal);
+  }
+
+  function handleSaveFile() {
+    const activeTab = tabs.find(tab => tab.id === currentTabId);
+    if (activeTab) {
+      if (activeTab.filename) {
+        saveFile(activeTab.id, activeTab.filename);
+      } else {
+        promptForFilename(filename => {
+          saveFile(activeTab.id, filename);
+        });
+      }
+    }
+  }
+
+  function handleSaveFileAs() {
+    const activeTab = tabs.find(tab => tab.id === currentTabId);
+    if (activeTab) {
+      promptForFilename(filename => {
+        saveFile(activeTab.id, filename);
+      });
+    }
+  }
+
+  function handleKeydown(event) {
+    if (event.ctrlKey && event.key === 's') {
+      event.preventDefault();
+      handleSaveFile();
+    }
+  }
+
+  saveFileButton.addEventListener('click', handleSaveFile);
+  saveFileAsButton.addEventListener('click', handleSaveFileAs);
+  document.addEventListener('keydown', handleKeydown);
+});
+
+
+
+
+
+
+
+document.getElementById('undo').addEventListener('click', () => {
+  document.execCommand('undo');
+});
+
+document.getElementById('redo').addEventListener('click', () => {
+  document.execCommand('redo');
+});
+
+
+
+document.getElementById('paste').addEventListener('click', () => {
+  const activeTextarea = document.querySelector('.textarea-container.active textarea');
+  if (activeTextarea) {
+    activeTextarea.focus();
+    document.execCommand('paste');
+    showNotification('Text pasted!');
+  } else {
+    showNotification('No text area is active!');
+  }
+});
+
+
+
+document.getElementById('fullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    const taskButton = document.getElementById('fullscreen');
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+});
+
+
+
+document.getElementById('cut').addEventListener('click', () => {
+  const activeTextarea = document.querySelector('.textarea-container.active textarea');
+  if (activeTextarea) {
+    activeTextarea.select();
+    document.execCommand('cut');
+    showNotification('Text cut!');
+  } else {
+    showNotification('No text area is active!');
+  }
+});
+
+
+showNotification('Welcome to Fire Note!');
+
+
+
+  // Function to rename a tab
+  function renameTab(tab) {
+    const tabContent = tab.querySelector('.tab-content');
+    const originalName = tabContent.innerText;
+    tabContent.contentEditable = true;
+    tabContent.focus();
+
+    tabContent.addEventListener('blur', () => {
+      tabContent.contentEditable = false;
+      if (tabContent.innerText.trim() === '') {
+        tabContent.innerText = originalName; // Revert to original name if empty
+      }
+    }, { once: true });
+  }
+
+
+
+
+  function showConfirmationDialog(message, onConfirm) {
+    // Create the confirmation dialog elements
+    const dialogOverlay = document.createElement('div');
+    dialogOverlay.className = 'dialog-overlay';
+  
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog';
+  
+    const messageElem = document.createElement('p');
+    messageElem.textContent = message;
+  
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'dialog-buttons';
+  
+    const confirmButton = document.createElement('button');
+    confirmButton.textContent = 'Confirm';
+    confirmButton.addEventListener('click', () => {
+      onConfirm(); // Call the callback function
+      closeDialog();
+    });
+  
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.addEventListener('click', () => {
+      closeDialog();
+    });
+  
+    buttonContainer.appendChild(confirmButton);
+    buttonContainer.appendChild(cancelButton);
+  
+    dialog.appendChild(messageElem);
+    dialog.appendChild(buttonContainer);
+  
+    document.body.appendChild(dialogOverlay);
+    document.body.appendChild(dialog);
+  
+    function closeDialog() {
+      document.body.removeChild(dialogOverlay);
+      document.body.removeChild(dialog);
+    }
+  }
+  
+
+
+
+  </script>
+</body>
+</html>
